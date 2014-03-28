@@ -1,38 +1,45 @@
 #!/usr/bin/env python
 
-import json
+from __future__ import print_function
+
+import datetime
 import os
-import subprocess
 import urllib2
 import urlparse
+import sys
 
-## TODO: Use propper OAuth client
-## TODO: Allow cookies to be stored
+try:
+  from bs4 import BeautifulSoup
+except ImportError as e:
+  print('Dependency missing. Try `pip install BeautifulSoup`', file=sys.stderr)
+  raise e
+
 ## TODO: Use pdftitle
 ## TODO: Convert HTML to PDF?
 
-def main():
-  args = ['curl', '--silent', '--get', 'https://api.twitter.com/1.1/statuses/user_timeline.json',
-          '--data', 'screen_name=onepaperperday',
-          '--header', 'Authorization: OAuth oauth_consumer_key="HBAIdnkPLdZi1BXsQy70yQ", oauth_nonce="c3d76f6c3fa0ebdc623a7350a1e60f8d", oauth_signature="luJErzKGa2t%2BDpXi3p4RF7oWMAA%3D", oauth_signature_method="HMAC-SHA1", oauth_timestamp="1395851794", oauth_token="14378183-7Rvz78f7QBLPs17V7Ki5WeT8II1jCcLnR7ri3MY8z", oauth_version="1.0"']
-  output = subprocess.check_output(args)
-  tweets = json.loads(output)
-  for tweet in tweets[:2]:
+def timestamp_to_datetime(i):
+  return datetime.datetime.fromtimestamp(i).strftime('%Y-%m-%d %H:%M:%S')
+
+def main(count=-1):
+  html = urllib2.urlopen("https://twitter.com/onepaperperday").read()
+  tweets = BeautifulSoup(html).find_all('div', class_='content')
+  for i, tweet in enumerate(tweets[:count], start = 1):
     try:
-      date = tweet['created_at']
-      text = tweet['text']
-      url  = tweet['entities']['urls'][0]['expanded_url']
-      # print date, text, url
+      datetime = timestamp_to_datetime(int(tweet.find('span', attrs={'data-time': True})['data-time']))
+      url = tweet.find('a', attrs={'data-expanded-url': True})['data-expanded-url']
 
       f_in = urllib2.urlopen(url)
       path = urlparse.urlparse(f_in.geturl()).path
       filename = os.path.basename(path) or "index.html"
-      print date, filename
+
+      print(datetime, url, filename)
 
       with open(filename, 'wb') as f_out:
         f_out.write(f_in.read())
     except:
-      pass
+      print(datetime, 'error with tweet', i)
+        
 
 if __name__ == '__main__':
-  main()
+  count = int(sys.argv[1]) if len(sys.argv) > 1 else None
+  main(count)
