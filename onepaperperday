@@ -17,27 +17,33 @@ except ImportError as e:
 ## TODO: Use pdftitle
 ## TODO: Convert HTML to PDF?
 
-def timestamp_to_datetime(i):
-  return datetime.datetime.fromtimestamp(i).strftime('%Y-%m-%d %H:%M:%S')
+def GET(url):
+  return urllib2.urlopen(url).read()
+
+def download(url, filename_prefix):
+  f_in = urllib2.urlopen(url)
+  path = urlparse.urlparse(f_in.geturl()).path
+  filename = '{}_{}'.format(filename_prefix, (os.path.basename(path) or 'index.html'))
+  with open(filename, 'wb') as f_out:
+    f_out.write(f_in.read())
+    return filename
+
+def timestamp_to_datetime(s):
+  return datetime.datetime.fromtimestamp(int(s)).strftime('%Y-%m-%d %H:%M:%S')
 
 def main(count=-1):
-  html = urllib2.urlopen("https://twitter.com/onepaperperday").read()
+  html = GET('https://twitter.com/onepaperperday')
   tweets = BeautifulSoup(html).find_all('div', class_='content')
 
-  for i, tweet in enumerate(tweets[:count], start = 1):
-    datetime = timestamp_to_datetime(int(tweet.find('span', attrs={'data-time': True})['data-time']))
+  for tweet in tweets[:count]:
     url = tweet.find('a', attrs={'data-expanded-url': True})
     if not url:
       continue
     url = url['data-expanded-url']
-
-    f_in = urllib2.urlopen(url)
-    path = urlparse.urlparse(f_in.geturl()).path
-    filename = '{}_{}'.format(datetime[:10], (os.path.basename(path) or "index.html"))
+    timestamp = tweet.find('span', attrs={'data-time': True})['data-time']
+    datetime = timestamp_to_datetime(timestamp)
+    filename = download(url, datetime[:10])
     print(datetime, '{:<19}'.format(url), filename)
-
-    with open(filename, 'wb') as f_out:
-      f_out.write(f_in.read())
 
 if __name__ == '__main__':
   count = int(sys.argv[1]) if len(sys.argv) > 1 else None
