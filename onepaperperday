@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+
+import json
+import os
+import subprocess
+import urllib2
+import urlparse
+
+## TODO: Use propper OAuth client
+## TODO: Allow cookies to be stored
+## TODO: Use pdftitle
+## TODO: Convert HTML to PDF?
+
+def main():
+  args = ['curl', '--silent', '--get', 'https://api.twitter.com/1.1/statuses/user_timeline.json',
+          '--data', 'screen_name=onepaperperday',
+          '--header', 'Authorization: OAuth oauth_consumer_key="HBAIdnkPLdZi1BXsQy70yQ", oauth_nonce="c3d76f6c3fa0ebdc623a7350a1e60f8d", oauth_signature="luJErzKGa2t%2BDpXi3p4RF7oWMAA%3D", oauth_signature_method="HMAC-SHA1", oauth_timestamp="1395851794", oauth_token="14378183-7Rvz78f7QBLPs17V7Ki5WeT8II1jCcLnR7ri3MY8z", oauth_version="1.0"']
+  output = subprocess.check_output(args)
+  tweets = json.loads(output)
+  for tweet in tweets[:2]:
+    try:
+      date = tweet['created_at']
+      text = tweet['text']
+      url  = tweet['entities']['urls'][0]['expanded_url']
+      # print date, text, url
+
+      f_in = urllib2.urlopen(url)
+      path = urlparse.urlparse(f_in.geturl()).path
+      filename = os.path.basename(path) or "index.html"
+      print date, filename
+
+      with open(filename, 'wb') as f_out:
+        f_out.write(f_in.read())
+    except:
+      pass
+
+if __name__ == '__main__':
+  main()
