@@ -23,22 +23,21 @@ def timestamp_to_datetime(i):
 def main(count=-1):
   html = urllib2.urlopen("https://twitter.com/onepaperperday").read()
   tweets = BeautifulSoup(html).find_all('div', class_='content')
+
   for i, tweet in enumerate(tweets[:count], start = 1):
-    try:
-      datetime = timestamp_to_datetime(int(tweet.find('span', attrs={'data-time': True})['data-time']))
-      url = tweet.find('a', attrs={'data-expanded-url': True})['data-expanded-url']
+    datetime = timestamp_to_datetime(int(tweet.find('span', attrs={'data-time': True})['data-time']))
+    url = tweet.find('a', attrs={'data-expanded-url': True})
+    if not url:
+      continue
+    url = url['data-expanded-url']
 
-      f_in = urllib2.urlopen(url)
-      path = urlparse.urlparse(f_in.geturl()).path
-      filename = os.path.basename(path) or "index.html"
+    f_in = urllib2.urlopen(url)
+    path = urlparse.urlparse(f_in.geturl()).path
+    filename = '{}_{}'.format(datetime[:10], (os.path.basename(path) or "index.html"))
+    print(datetime, '{:<19}'.format(url), filename)
 
-      print(datetime, url, filename)
-
-      with open(filename, 'wb') as f_out:
-        f_out.write(f_in.read())
-    except:
-      print(datetime, 'error with tweet', i)
-        
+    with open(filename, 'wb') as f_out:
+      f_out.write(f_in.read())
 
 if __name__ == '__main__':
   count = int(sys.argv[1]) if len(sys.argv) > 1 else None
