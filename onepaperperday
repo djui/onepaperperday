@@ -26,7 +26,8 @@ def download(url, filename_prefix):
 def timestamp_to_datetime(s):
   return datetime.datetime.fromtimestamp(int(s)).strftime('%Y-%m-%d %H:%M:%S')
 
-def main(count):
+def main(args):
+  count = int(args[1]) if len(args) > 1 else -1
   html = GET('https://twitter.com/onepaperperday')
   tweets = BeautifulSoup(html).find_all('div', class_='content')
 
@@ -41,8 +42,7 @@ def main(count):
     print(datetime, '{:<19}'.format(url), filename)
 
 if __name__ == '__main__':
-  count = int(sys.argv[1]) if len(sys.argv) > 1 else -1
   try:
-    main(count)
+    main(sys.argv)
   except KeyboardInterrupt:
     pass
