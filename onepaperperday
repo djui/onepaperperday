@@ -17,18 +17,16 @@ import urlparse
 
 user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.152 Safari/537.36'
 
+
+def timestamp_to_datetime(s):
+  return datetime.datetime.fromtimestamp(int(s)).strftime('%Y-%m-%d %H:%M:%S')
+
+
 def url_to_filename(url, prefix='', default='index.html'):
   path = urlparse.urlparse(url).path
   filename = urllib.unquote(os.path.basename(path)).replace('_',' ') or default
   return prefix + filename
 
-def GET(url):
-  try:
-    return urllib2.urlopen(url).read()
-  except urllib2.HTTPError, e:
-    print('HTTP Error:', e.code, url)
-  except urllib2.URLError, e:
-    print('URL Error:', e.reason, url)
 
 def download(url, prefix, override=True):
   try:
@@ -52,8 +50,15 @@ def download(url, prefix, override=True):
   except urllib2.URLError, e:
     print('URL Error:', e.reason, url)
 
-def timestamp_to_datetime(s):
-  return datetime.datetime.fromtimestamp(int(s)).strftime('%Y-%m-%d %H:%M:%S')
+
+def GET(url):
+  try:
+    return urllib2.urlopen(url).read()
+  except urllib2.HTTPError, e:
+    print('HTTP Error:', e.code, url)
+  except urllib2.URLError, e:
+    print('URL Error:', e.reason, url)
+
 
 def main(args):
   count = int(args[1]) if len(args) > 1 else -1
@@ -69,6 +74,7 @@ def main(args):
     datetime = timestamp_to_datetime(timestamp)
     filename = download(url, datetime[:10] + '_', override=False)
     print(datetime, '{:<19}'.format(url), filename)
+
 
 if __name__ == '__main__':
   try:
