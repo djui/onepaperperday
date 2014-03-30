@@ -5,27 +5,53 @@ from bs4 import BeautifulSoup
 
 import datetime
 import os
+import re
+import sys
+import urllib
 import urllib2
 import urlparse
-import sys
 
+## TODO: Use Content-Disposition header
+## TODO: Use title tag of website
 ## TODO: Use pdftitle
 ## TODO: Convert HTML to PDF?
 
 user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.152 Safari/537.36'
 
-def GET(url):
-  return urllib2.urlopen(url).read()
+def url_to_filename(url, prefix='', default='index.html'):
+  path = urlparse.urlparse(url).path
+  filename = urllib.unquote(os.path.basename(path)).replace('_',' ') or default
+  return prefix + filename
 
-def download(url, filename_prefix, override=True):
-  req = urllib2.Request(url, headers={'User-Agent': user_agent})
-  f_in = urllib2.urlopen(req)
-  path = urlparse.urlparse(f_in.geturl()).path
-  filename = '{}_{}'.format(filename_prefix, (os.path.basename(path) or 'index.html'))
-  if not os.path.exists(filename) or override:
-    with open(filename, 'wb') as f_out:
-      f_out.write(f_in.read())
-  return filename
+def GET(url):
+  try:
+    return urllib2.urlopen(url).read()
+  except urllib2.HTTPError, e:
+    print('HTTP Error:', e.code, url)
+  except urllib2.URLError, e:
+    print('URL Error:', e.reason, url)
+
+def download(url, prefix, override=True):
+  try:
+    req = urllib2.Request(url, headers={'User-Agent': user_agent})
+    f_in = urllib2.urlopen(req)
+    content = f_in.read()
+
+    filename = url_to_filename(f_in.geturl(), prefix)
+    if filename.endswith('.html'):
+      # No filename found, likely HTML page
+      title_tag = BeautifulSoup(content).find('title')
+      title = title_tag.string if title_tag else 'index'
+      filename = '{}{}.html'.format(prefix, re.sub(r'\s*[/:]\s*', ' - ', title))
+
+    if not os.path.exists(filename) or override:
+      with open(filename, 'wb') as f_out:
+        f_out.write(content)
+    return filename
+  except urllib2.HTTPError, e:
+    print('HTTP Error:', e.code, url)
+  except urllib2.URLError, e:
+    print('URL Error:', e.reason, url)
 
 def timestamp_to_datetime(s):
   return datetime.datetime.fromtimestamp(int(s)).strftime('%Y-%m-%d %H:%M:%S')
@@ -42,7 +68,7 @@ def main(args):
     url = url['data-expanded-url']
     timestamp = tweet.find('span', attrs={'data-time': True})['data-time']
     datetime = timestamp_to_datetime(timestamp)
-    filename = download(url, datetime[:10], override=False)
+    filename = download(url, datetime[:10] + '_', override=False)
     print(datetime, '{:<19}'.format(url), filename)
 
 if __name__ == '__main__':
