@@ -12,16 +12,20 @@ import sys
 ## TODO: Use pdftitle
 ## TODO: Convert HTML to PDF?
 
+user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.152 Safari/537.36'
+
 def GET(url):
   return urllib2.urlopen(url).read()
 
-def download(url, filename_prefix):
-  f_in = urllib2.urlopen(url)
+def download(url, filename_prefix, override=True):
+  req = urllib2.Request(url, headers={'User-Agent': user_agent})
+  f_in = urllib2.urlopen(req)
   path = urlparse.urlparse(f_in.geturl()).path
   filename = '{}_{}'.format(filename_prefix, (os.path.basename(path) or 'index.html'))
-  with open(filename, 'wb') as f_out:
-    f_out.write(f_in.read())
-    return filename
+  if not os.path.exists(filename) or override:
+    with open(filename, 'wb') as f_out:
+      f_out.write(f_in.read())
+  return filename
 
 def timestamp_to_datetime(s):
   return datetime.datetime.fromtimestamp(int(s)).strftime('%Y-%m-%d %H:%M:%S')
@@ -38,7 +42,7 @@ def main(args):
     url = url['data-expanded-url']
     timestamp = tweet.find('span', attrs={'data-time': True})['data-time']
     datetime = timestamp_to_datetime(timestamp)
-    filename = download(url, datetime[:10])
+    filename = download(url, datetime[:10], override=False)
     print(datetime, '{:<19}'.format(url), filename)
 
 if __name__ == '__main__':
