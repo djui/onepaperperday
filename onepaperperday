@@ -12,7 +12,6 @@ import urllib2
 import urlparse
 
 ## TODO: Use Content-Disposition header
-## TODO: Use title tag of website
 ## TODO: Use pdftitle
 ## TODO: Convert HTML to PDF?
 
